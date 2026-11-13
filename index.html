@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Salome</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #f0f2f5;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* 登录注册界面 */
+    #auth-view {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 24px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+    #auth-view .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 32px 24px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.3);
+    }
+    #auth-view h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 24px;
+      font-size: 28px;
+      letter-spacing: 2px;
+    }
+    #auth-view input {
+      width: 100%;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 15px;
+      outline: none;
+      transition: border .2s;
+    }
+    #auth-view input:focus { border-color: #667eea; }
+    #auth-view button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    #auth-view button:active { opacity: .8; }
+    .btn-primary { background: #667eea; color: #fff; margin-bottom: 10px; }
+    .btn-secondary { background: #f0f0f0; color: #555; }
+    #auth-msg { text-align: center; margin-top: 12px; font-size: 13px; color: #e74c3c; min-height: 18px; }
+
+    /* 聊天主界面 */
+    #chat-view { flex: 1; display: none; flex-direction: column; background: #ededed; }
+    .chat-header {
+      background: #fff;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e0e0e0;
+      flex-shrink: 0;
+    }
+    .chat-header .title { font-weight: 600; font-size: 17px; color: #333; }
+    .chat-header button {
+      background: none; border: none; font-size: 14px; color: #667eea; cursor: pointer; padding: 6px;
+    }
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .msg {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 15px;
+      line-height: 1.5;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: #95ec69;
+      color: #000;
+      border-bottom-right-radius: 4px;
+    }
+    .msg.ai {
+      align-self: flex-start;
+      background: #fff;
+      color: #333;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+    .msg.typing { color: #999; font-style: italic; }
+    .chat-input-bar {
+      display: flex;
+      padding: 10px 12px;
+      background: #f7f7f7;
+      border-top: 1px solid #e0e0e0;
+      gap: 8px;
+      flex-shrink: 0;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    #chat-input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid #ddd;
+      border-radius: 24px;
+      font-size: 15px;
+      outline: none;
+      background: #fff;
+    }
+    #send-btn {
+      padding: 12px 20px;
+      background: #667eea;
+      color: #fff;
+      border: none;
+      border-radius: 24px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    #send-btn:disabled { opacity: .5; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- 登录 / 注册界面 -->
+  <div id="auth-view">
+    <div class="card">
+      <h1>Salome</h1>
+      <input id="email-input" type="email" placeholder="邮箱地址" autocomplete="email">
+      <input id="password-input" type="password" placeholder="密码（至少6位）" autocomplete="current-password">
+      <button class="btn-primary" id="login-btn">登 录</button>
+      <button class="btn-secondary" id="signup-btn">注册新账号</button>
+      <div id="auth-msg"></div>
+    </div>
+  </div>
+
+  <!-- 聊天界面 -->
+  <div id="chat-view">
+    <div class="chat-header">
+      <span class="title">Salome</span>
+      <button id="logout-btn">退出</button>
+    </div>
+    <div id="messages"></div>
+    <div class="chat-input-bar">
+      <input id="chat-input" type="text" placeholder="输入消息..." autocomplete="off">
+      <button id="send-btn">发送</button>
+    </div>
+  </div>
+
+  <!-- SDK 引入 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://js.puter.com/v2/"></script>
+
+  <script>
+    // 你的专属配置（已经帮你填好了）
+    const SUPABASE_URL = 'https://qvzqztrllhpwanfzsliz.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_97-irJFjIlMaPkX4cPJSoA_VSI3D9nz';
+
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const authView = document.getElementById('auth-view');
+    const chatView = document.getElementById('chat-view');
+    const emailInput = document.getElementById('email-input');
+    const passwordInput = document.getElementById('password-input');
+    const authMsg = document.getElementById('auth-msg');
+    const messagesEl = document.getElementById('messages');
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    // 登录 / 注册
+    async function signUp() {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      if (!email || password.length < 6) {
+        authMsg.textContent = '请输入有效邮箱，密码至少6位';
+        return;
+      }
+      authMsg.style.color = '#333';
+      authMsg.textContent = '正在注册...';
+      const { error } = await db.auth.signUp({ email, password });
+      if (error) {
+        authMsg.style.color = '#e74c3c';
+        authMsg.textContent = error.message;
+      } else {
+        authMsg.style.color = '#27ae60';
+        authMsg.textContent = '注册成功！请直接登录。';
+      }
+    }
+
+    async function signIn() {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      if (!email || !password) {
+        authMsg.style.color = '#e74c3c';
+        authMsg.textContent = '请填写邮箱和密码';
+        return;
+      }
+      authMsg.style.color = '#333';
+      authMsg.textContent = '正在登录...';
+      const { error } = await db.auth.signInWithPassword({ email, password });
+      if (error) {
+        authMsg.style.color = '#e74c3c';
+        authMsg.textContent = '登录失败：' + error.message;
+      } else {
+        authMsg.textContent = '';
+      }
+    }
+
+    async function signOut() {
+      await db.auth.signOut();
+    }
+
+    // 状态切换
+    db.auth.onAuthStateChange((event, session) => {
+      if (session && session.user) {
+        authView.classList.add('hidden');
+        chatView.style.display = 'flex';
+        initChat();
+      } else {
+        authView.classList.remove('hidden');
+        chatView.style.display = 'none';
+        messagesEl.innerHTML = '';
+      }
+    });
+
+    // AI 聊天
+    let chatHistory = [];
+
+    function appendMessage(role, text, isTyping = false) {
+      const div = document.createElement('div');
+      div.className = `msg ${role}${isTyping ? ' typing' : ''}`;
+      div.textContent = text;
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      return div;
+    }
+
+    async function sendMessage() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      chatInput.value = '';
+      sendBtn.disabled = true;
+
+      appendMessage('user', text);
+      chatHistory.push({ role: 'user', content: text });
+
+      const typingDiv = appendMessage('ai', '正在思考...', true);
+
+      try {
+        const response = await puter.ai.chat(chatHistory, {
+          model: 'gpt-4o-mini',
+        });
+
+        const reply = response?.message?.content || response?.text || '（没有收到回复）';
+        typingDiv.remove();
+        appendMessage('ai', reply);
+        chatHistory.push({ role: 'assistant', content: reply });
+      } catch (err) {
+        typingDiv.textContent = '出错了：' + (err.message || '请稍后重试');
+        typingDiv.classList.remove('typing');
+      }
+
+      sendBtn.disabled = false;
+      chatInput.focus();
+    }
+
+    function initChat() {
+      if (initChat.done) return;
+      initChat.done = true;
+
+      document.getElementById('login-btn').onclick = signIn;
+      document.getElementById('signup-btn').onclick = signUp;
+      document.getElementById('logout-btn').onclick = signOut;
+      sendBtn.onclick = sendMessage;
+      chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendMessage();
+      });
+    }
+
+    // 检查登录状态
+    (async () => {
+      const { data } = await db.auth.getSession();
+      if (data.session) {
+        authView.classList.add('hidden');
+        chatView.style.display = 'flex';
+        initChat();
+      }
+    })();
+  </script>
+</body>
+</html>
